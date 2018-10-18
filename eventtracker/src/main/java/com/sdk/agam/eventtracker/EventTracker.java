@@ -1,10 +1,7 @@
 package com.sdk.agam.eventtracker;
 
 import org.json.JSONObject;
-
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import com.sdk.agam.eventtracker.EventMessage;
 
 public class EventTracker {
 
@@ -12,7 +9,7 @@ public class EventTracker {
     private String deviceUID;
     private static final Integer APIKEY_LENGTH = 16;
     private static final Integer DEVICEUID_LENGTH = 32;
-    private BlockingQueue eventQueue;
+    private ArrayBlockingQueue<EventMessage> eventQueue;
     private static final Integer EVENTQUEUE_SIZE = 10;
     private static final Integer FLUSH_INTERVAL_SECONDS = 10;
 
@@ -59,7 +56,7 @@ public class EventTracker {
 
         // Try to add a new event to the queue (producer)
         // If offer fails (eg the queue is full, we will remove elements until it works)
-        while(this.eventQueue.offer(em) != true) {
+        while(!this.eventQueue.offer(em)) {
             this.eventQueue.poll();
         }
     }
