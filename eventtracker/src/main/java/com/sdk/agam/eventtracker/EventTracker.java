@@ -2,8 +2,13 @@ package com.sdk.agam.eventtracker;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -25,6 +30,7 @@ public class EventTracker extends ContextWrapper  {
     private ArrayBlockingQueue<EventMessage> eventQueue; //volitaile?
     private Handler mainHandler;
     private HandlerThread mainHandlerThread = null;
+    private Boolean lastNetworkState = null;
 
     // Constants
     private static final Integer APIKEY_LENGTH = 16;
@@ -80,21 +86,13 @@ public class EventTracker extends ContextWrapper  {
     private void initializeHooks() {
         Log.d(TAG, "initializeHooks: " + getApplicationContext().toString());
 
-        //registerActivityLifecycleCallbacks(new AppLifecycleTracker());
+        // Register the activity state hooks
         ((Application)getApplicationContext()).registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks(){
             @Override
             public void onActivityCreated(Activity activity, Bundle bundle) {}
 
             @Override
-            public void onActivityStarted(Activity activity) {
-                Log.d(TAG, "onActivityStarted");
-                try {
-                    track("app", new JSONObject().put("ActivityState", "started"));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-            }
+            public void onActivityStarted(Activity activity) {}
 
             @Override
             public void onActivityResumed(Activity activity) {
@@ -117,14 +115,7 @@ public class EventTracker extends ContextWrapper  {
             }
 
             @Override
-            public void onActivityStopped(Activity activity) {
-                Log.d(TAG, "onActivityStopped");
-                try {
-                    track("app", new JSONObject().put("ActivityState", "stopped"));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
+            public void onActivityStopped(Activity activity) { }
 
             @Override
             public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {}
@@ -132,6 +123,41 @@ public class EventTracker extends ContextWrapper  {
             @Override
             public void onActivityDestroyed(Activity activity) {}
         });
+
+        // Register the network state hooks
+        BroadcastReceiver chargerReceiver = new BroadcastReceiver() {
+
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                ConnectivityManager cm =
+                        (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                boolean isConnected = activeNetwork != null &&
+                        activeNetwork.isConnectedOrConnecting();
+
+                if (lastNetworkState == null) {
+                    lastNetworkState = isConnected;
+                }
+
+                // Don't report if already reported the same info.
+                if(lastNetworkState != null && lastNetworkState == isConnected) {
+                    return;
+                }
+
+                lastNetworkState = isConnected;
+                Log.d(TAG, "onActivity onReceive: on? " + isConnected);
+                try {
+                    track("network", new JSONObject().put("NetworkStateOn", isConnected));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        registerReceiver(
+                chargerReceiver,
+                new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
+        );
     }
 
 
@@ -221,7 +247,6 @@ public class EventTracker extends ContextWrapper  {
                 Log.d(TAG, "sendEventHTTP: done..." + responseCode);
 
             } catch (Exception e) {
-                Log.d("FUCK ME", "sendEventHTTP: meh mehm :(");
                 e.printStackTrace();
             }
         }
