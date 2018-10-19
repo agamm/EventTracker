@@ -1,21 +1,24 @@
 package com.sdk.agam.eventtracker;
 
+import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedWriter;
 import java.io.DataOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.ArrayBlockingQueue;
 
 
-public class EventTracker {
+public class EventTracker extends ContextWrapper  {
     private static final String TAG = "EventTracker";
     private String apiKey;
     private String deviceUID;
@@ -29,6 +32,12 @@ public class EventTracker {
     private static final Integer EVENTQUEUE_SIZE = 10;
     private static final Integer FLUSH_INTERVAL_MS = 10000;
     private static final String API_ENDPOINT_URL = "https://webhook.site/08ac3515-63a1-49a2-89ef-8f106aa8e80c";
+
+    public EventTracker(Context base) {
+        super(base);
+        //this.attachBaseContext(base);
+    }
+
 
     /**
      * Initialize the SDK with the basic tracking identifiers.
@@ -61,7 +70,73 @@ public class EventTracker {
         this.initializeBackgroundRunnable();
 
         // Initialize the default network connectivity status event tracking.
+        this.initializeHooks();
     }
+
+    /**
+     * Initialize the default hooks which we will track
+     * Network changes, and activity foreground/background.
+     */
+    private void initializeHooks() {
+        Log.d(TAG, "initializeHooks: " + getApplicationContext().toString());
+
+        //registerActivityLifecycleCallbacks(new AppLifecycleTracker());
+        ((Application)getApplicationContext()).registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks(){
+            @Override
+            public void onActivityCreated(Activity activity, Bundle bundle) {}
+
+            @Override
+            public void onActivityStarted(Activity activity) {
+                Log.d(TAG, "onActivityStarted");
+                try {
+                    track("app", new JSONObject().put("ActivityState", "started"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+            @Override
+            public void onActivityResumed(Activity activity) {
+                Log.d(TAG, "onActivityResumed");
+                try {
+                    track("app", new JSONObject().put("ActivityState", "resumed"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onActivityPaused(Activity activity) {
+                Log.d(TAG, "onActivityPaused");
+                try {
+                    track("app", new JSONObject().put("ActivityState", "paused"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onActivityStopped(Activity activity) {
+                Log.d(TAG, "onActivityStopped");
+                try {
+                    track("app", new JSONObject().put("ActivityState", "stopped"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {}
+
+            @Override
+            public void onActivityDestroyed(Activity activity) {}
+        });
+    }
+
+
+    
+
 
     /**
      * Adds a new event for the next batch of events sent to the server.
@@ -76,6 +151,7 @@ public class EventTracker {
         // Try to add a new event to the queue (producer)
         // If offer fails (eg the queue is full, we will remove elements until it works)
         while (!this.eventQueue.offer(em)) {
+            Log.d(TAG, "track: removing old events from queue.");
             this.eventQueue.poll();
         }
     }
@@ -118,7 +194,8 @@ public class EventTracker {
 
         /**
          * Send the event to the defined api endpoint at API_ENDPOINT_URL
-         *  Note: If I would have more time then I would maybe add SSL Pinning.
+         * Note: If I would have more time then I would maybe add SSL Pinning.
+         *
          * @param em EventMessage to send
          */
         private void sendEventHTTP(EventMessage em) {
@@ -141,7 +218,7 @@ public class EventTracker {
 
                 // 4. make POST request to the given URL
                 conn.connect();
-                Log.d(TAG, "sendEventHTTP: done..." + responseCode );
+                Log.d(TAG, "sendEventHTTP: done..." + responseCode);
 
             } catch (Exception e) {
                 Log.d("FUCK ME", "sendEventHTTP: meh mehm :(");
@@ -152,11 +229,16 @@ public class EventTracker {
         @Override
         public void run() {
             EventMessage currentEventMessage = eventQueue.poll();
+            Log.d(TAG, "First event: " + currentEventMessage);
 
-            Log.d(TAG, "Current event: " + currentEventMessage);
-            if (currentEventMessage != null) {
+            // Flush all the events sequentially (so the events will be ordered)
+            // Note: we could add order metadata so we could send it asynchronously.
+            while (currentEventMessage != null) {
+                Log.d(TAG, "Current event: " + currentEventMessage);
                 sendEventHTTP(currentEventMessage);
+                currentEventMessage = eventQueue.poll();
             }
+
             // Queue this job again in 10 seconds
             mainHandler.postDelayed(this, FLUSH_INTERVAL_MS);
         }
