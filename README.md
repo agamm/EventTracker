@@ -1,9 +1,12 @@
+## SDK to track events in an Android Application.
+By default tacks network state and activity resume/pause. You can send custom data too.
 
 ### Usage
      EventTracker et = new EventTracker(getApplicationContext(), true);
      et.init("apiKeyHere", EventTracker.getDeviceUID(getApplicationContext()));
      et.track("network", new JSONObject().put("Initialization", "OK"));
 
+    You might use https://webhook.site to log the events, as it uses HTTPS.
 
 ### Things to do if I had more time:
 - Permissions:
