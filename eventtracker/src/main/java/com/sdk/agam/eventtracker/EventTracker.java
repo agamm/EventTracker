@@ -70,6 +70,8 @@ public class EventTracker {
     /**
      * Initialize the background task worker and the main handler.
      * Will also start the background task immediately upon invocation.
+     * Note: if I had more time I would read about more interfaces of bg tasks that
+     * could achieve a more elegant solution.
      */
     private void initializeBackgroundRunnable() {
         // Initialize the handler
@@ -81,19 +83,20 @@ public class EventTracker {
         this.mainHandler.postDelayed(runnable, 0);
     }
 
+    /**
+     * The background runnable, running again each FLUSH_INTERVAL_SECONDS seconds.
+     * Used for sending the events to the server in the background.
+     */
     class BackgroundRunnable implements Runnable {
 
         private static final String TAG = "BackgroundRunnable";
-//        BackgroundRunnable(int param) {
-//
-//        }
 
         @Override
         public void run() {
             Log.d(TAG, "run: started: " + eventQueue.poll());
 
             // Queue this job again in 10 seconds
-            mainHandler.postDelayed(this, 10000);
+            mainHandler.postDelayed(this, FLUSH_INTERVAL_SECONDS);
         }
     }
 }
