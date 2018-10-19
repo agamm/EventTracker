@@ -1,5 +1,5 @@
 ## SDK to track events in an Android Application.
-By default tacks network state and activity resume/pause. You can send custom data too.
+By default tracks network state and activity resume/pause. You can send custom data too.
 
 ### Usage
      EventTracker et = new EventTracker(getApplicationContext(), true);
