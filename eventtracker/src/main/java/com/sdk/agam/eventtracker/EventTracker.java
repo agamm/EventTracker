@@ -23,14 +23,15 @@ import java.net.URL;
 import java.util.concurrent.ArrayBlockingQueue;
 
 
-public class EventTracker extends ContextWrapper  {
+public class EventTracker extends ContextWrapper {
     private static final String TAG = "EventTracker";
     private String apiKey;
     private String deviceUID;
-    private ArrayBlockingQueue<EventMessage> eventQueue; //volitaile?
+    private volatile ArrayBlockingQueue<EventMessage> eventQueue;
     private Handler mainHandler;
     private HandlerThread mainHandlerThread = null;
     private Boolean lastNetworkState = null;
+    public Boolean debugMode;
 
     // Constants
     private static final Integer APIKEY_LENGTH = 16;
@@ -39,9 +40,13 @@ public class EventTracker extends ContextWrapper  {
     private static final Integer FLUSH_INTERVAL_MS = 10000;
     private static final String API_ENDPOINT_URL = "https://webhook.site/08ac3515-63a1-49a2-89ef-8f106aa8e80c";
 
-    public EventTracker(Context base) {
+    public EventTracker(Context base, Boolean debugMode) {
         super(base);
-        //this.attachBaseContext(base);
+        if(debugMode == null) {
+            debugMode = BuildConfig.DEBUG;
+        }
+        // Note: actually use this in the log messages (TODO)
+        this.debugMode = debugMode;
     }
 
 
@@ -84,15 +89,16 @@ public class EventTracker extends ContextWrapper  {
      * Network changes, and activity foreground/background.
      */
     private void initializeHooks() {
-        Log.d(TAG, "initializeHooks: " + getApplicationContext().toString());
 
         // Register the activity state hooks
-        ((Application)getApplicationContext()).registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks(){
+        ((Application) getApplicationContext()).registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
             @Override
-            public void onActivityCreated(Activity activity, Bundle bundle) {}
+            public void onActivityCreated(Activity activity, Bundle bundle) {
+            }
 
             @Override
-            public void onActivityStarted(Activity activity) {}
+            public void onActivityStarted(Activity activity) {
+            }
 
             @Override
             public void onActivityResumed(Activity activity) {
@@ -115,13 +121,16 @@ public class EventTracker extends ContextWrapper  {
             }
 
             @Override
-            public void onActivityStopped(Activity activity) { }
+            public void onActivityStopped(Activity activity) {
+            }
 
             @Override
-            public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {}
+            public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {
+            }
 
             @Override
-            public void onActivityDestroyed(Activity activity) {}
+            public void onActivityDestroyed(Activity activity) {
+            }
         });
 
         // Register the network state hooks
@@ -130,7 +139,7 @@ public class EventTracker extends ContextWrapper  {
             @Override
             public void onReceive(Context context, Intent intent) {
                 ConnectivityManager cm =
-                        (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                        (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
                 boolean isConnected = activeNetwork != null &&
                         activeNetwork.isConnectedOrConnecting();
@@ -140,12 +149,13 @@ public class EventTracker extends ContextWrapper  {
                 }
 
                 // Don't report if already reported the same info.
-                if(lastNetworkState != null && lastNetworkState == isConnected) {
+                if (lastNetworkState != null && lastNetworkState == isConnected) {
                     return;
                 }
 
                 lastNetworkState = isConnected;
-                Log.d(TAG, "onActivity onReceive: on? " + isConnected);
+                Log.d(TAG, "onReceive: internet on? " + isConnected);
+
                 try {
                     JSONObject json = new JSONObject();
                     json.put("NetworkStateOn", isConnected);
@@ -157,14 +167,12 @@ public class EventTracker extends ContextWrapper  {
             }
         };
 
+        // Register the network receiver
         registerReceiver(
                 chargerReceiver,
                 new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         );
     }
-
-
-    
 
 
     /**
@@ -196,6 +204,8 @@ public class EventTracker extends ContextWrapper  {
         this.mainHandlerThread = new HandlerThread("HandlerThread");
         this.mainHandlerThread.start();
         this.mainHandler = new Handler(this.mainHandlerThread.getLooper());
+
+        // Start immediately
         this.mainHandler.postDelayed(new BackgroundRunnable(), 0);
     }
 
@@ -267,7 +277,7 @@ public class EventTracker extends ContextWrapper  {
                 currentEventMessage = eventQueue.poll();
             }
 
-            // Queue this job again in 10 seconds
+            // Queue this job again in FLUSH_INTERVAL_MS (10 seconds)
             mainHandler.postDelayed(this, FLUSH_INTERVAL_MS);
         }
     }

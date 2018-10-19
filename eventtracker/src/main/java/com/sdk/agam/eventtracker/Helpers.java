@@ -3,8 +3,6 @@ package com.sdk.agam.eventtracker;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -17,7 +15,6 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.UUID;
 
-import static android.support.v4.content.ContextCompat.getSystemService;
 
 public class Helpers {
 
@@ -116,7 +113,7 @@ public class Helpers {
                 }
             }
         } catch (Exception ex) {
-            Log.e("IP Address", ex.toString());
+            Log.e("Helper.getLocalIpAddress", ex.toString());
         }
         return null;
     }
