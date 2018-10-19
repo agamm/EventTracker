@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         EventTracker et = new EventTracker();
-        et.init("aaaaaaaaaaaaaaaa", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        et.init("aaaaaaaaaaaaaaaa", EventTracker.getDeviceUID(getApplicationContext()));
         try {
             et.track("network", new JSONObject().put("Initialization", "OK"));
             sleep(5000);
