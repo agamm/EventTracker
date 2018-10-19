@@ -31,3 +31,5 @@ By default tacks network state and activity resume/pause. You can send custom da
     * Probably go through the whole code in a more rigorous scan and try to ask a friend to CR it.
 - README:
     * Add an Install section + ARR file.
+- Tests:
+     * Add tests to all the functions.
