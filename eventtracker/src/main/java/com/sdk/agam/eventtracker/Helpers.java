@@ -11,6 +11,10 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Enumeration;
 import java.util.UUID;
 
 import static android.support.v4.content.ContextCompat.getSystemService;
@@ -87,6 +91,34 @@ public class Helpers {
             e.printStackTrace();
         }
         throw new Exception("Could not convert to HTTP payload.");
+    }
+
+    /**
+     * Returns the current Ip in IPv4 format
+     * Taken from: https://stackoverflow.com/questions/11015912/how-do-i-get-ip-address-in-ipv4-format
+     * Note: If we want the remote ip address then we can use something like wtfismyip.com/text
+     * @return ip String
+     */
+    public static String getLocalIpAddress() {
+        try {
+            for (Enumeration<NetworkInterface> en = NetworkInterface
+                    .getNetworkInterfaces(); en.hasMoreElements();) {
+                NetworkInterface intf = en.nextElement();
+                for (Enumeration<InetAddress> enumIpAddr = intf
+                        .getInetAddresses(); enumIpAddr.hasMoreElements();) {
+                    InetAddress inetAddress = enumIpAddr.nextElement();
+
+                    // for getting IPV4 format
+                    String ip = inetAddress.getHostAddress().toString();
+                    if (!inetAddress.isLoopbackAddress() && inetAddress instanceof Inet4Address) {
+                        return ip;
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            Log.e("IP Address", ex.toString());
+        }
+        return null;
     }
 
 }

@@ -147,7 +147,10 @@ public class EventTracker extends ContextWrapper  {
                 lastNetworkState = isConnected;
                 Log.d(TAG, "onActivity onReceive: on? " + isConnected);
                 try {
-                    track("network", new JSONObject().put("NetworkStateOn", isConnected));
+                    JSONObject json = new JSONObject();
+                    json.put("NetworkStateOn", isConnected);
+                    json.put("IPv4", Helpers.getLocalIpAddress());
+                    track("network", json);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
