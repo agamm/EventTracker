@@ -38,7 +38,7 @@ public class EventTracker extends ContextWrapper {
     private static final Integer DEVICEUID_LENGTH = 16;
     private static final Integer EVENTQUEUE_SIZE = 10;
     private static final Integer FLUSH_INTERVAL_MS = 10000;
-    private static final String API_ENDPOINT_URL = "https://webhook.site/08ac3515-63a1-49a2-89ef-8f106aa8e80c";
+    private static String API_ENDPOINT_URL = "https://webhook.site/08ac3515-63a1-49a2-89ef-8f106aa8e80c";
 
     public EventTracker(Context base, Boolean debugMode) {
         super(base);
@@ -220,6 +220,15 @@ public class EventTracker extends ContextWrapper {
      */
     public static String getDeviceUID(Context context) {
         return Helpers.getUniqueDeviceId(context);
+    }
+
+    /**
+     * Set the URL to send the tracked events to.
+     * Must accept POST requests with JSON data.
+     * @param apiEndpointUrl String
+     */
+    public static void setApiEndpointUrl(String apiEndpointUrl) {
+        API_ENDPOINT_URL = apiEndpointUrl;
     }
 
 
