@@ -1,17 +1,22 @@
 package com.sdk.agam.eventtracker;
 
+import android.os.AsyncTask;
+import android.os.Handler;
+import android.util.Log;
+
 import org.json.JSONObject;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public class EventTracker {
-
+    private static final String TAG = "EventTracker";
     private String apiKey;
     private String deviceUID;
     private static final Integer APIKEY_LENGTH = 16;
     private static final Integer DEVICEUID_LENGTH = 32;
-    private ArrayBlockingQueue<EventMessage> eventQueue;
+    private ArrayBlockingQueue<EventMessage> eventQueue; //volitaile?
     private static final Integer EVENTQUEUE_SIZE = 10;
     private static final Integer FLUSH_INTERVAL_SECONDS = 10;
+    private Handler mainHandler;
 
 
     /**
@@ -41,6 +46,7 @@ public class EventTracker {
 
 
         // Initialize the network background task for flushing the events.
+        this.initializeBackgroundRunnable();
 
         // Initialize the default network connectivity status event tracking.
     }
@@ -61,5 +67,33 @@ public class EventTracker {
         }
     }
 
+    /**
+     * Initialize the background task worker and the main handler.
+     * Will also start the background task immediately upon invocation.
+     */
+    private void initializeBackgroundRunnable() {
+        // Initialize the handler
+        Handler handler = new Handler();
+        this.mainHandler = handler;
+        final Runnable runnable = new BackgroundRunnable();
 
+        // Start Immediately
+        this.mainHandler.postDelayed(runnable, 0);
+    }
+
+    class BackgroundRunnable implements Runnable {
+
+        private static final String TAG = "BackgroundRunnable";
+//        BackgroundRunnable(int param) {
+//
+//        }
+
+        @Override
+        public void run() {
+            Log.d(TAG, "run: started: " + eventQueue.poll());
+
+            // Queue this job again in 10 seconds
+            mainHandler.postDelayed(this, 10000);
+        }
+    }
 }

@@ -5,6 +5,11 @@ import android.os.Bundle;
 
 import com.sdk.agam.eventtracker.EventTracker;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import static java.lang.Thread.sleep;
+
 public class MainActivity extends AppCompatActivity {
 
     @Override
@@ -13,5 +18,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         EventTracker et = new EventTracker();
         et.init("aaaaaaaaaaaaaaaa", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        try {
+            et.track("network", new JSONObject().put("Initialization", "OK"));
+            sleep(5000);
+            et.track("network", new JSONObject().put("Initialization2", "OK2"));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
